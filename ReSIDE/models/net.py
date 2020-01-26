@@ -6,12 +6,12 @@ import torch.nn as nn
 from torch.utils import model_zoo
 import copy
 import numpy as np
-import modules
+from ..models import modules
 from torchvision import utils
 
-import senet
-import resnet
-import densenet
+from ..models import senet
+from ..models import resnet
+from ..models import densenet
 
 class model(nn.Module):
     def __init__(self, Encoder, num_features, block_channel):

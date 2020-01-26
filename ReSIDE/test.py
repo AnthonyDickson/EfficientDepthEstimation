@@ -1,13 +1,10 @@
-import argparse
 import torch
 import torch.nn as nn
 import torch.nn.parallel
 
-from models import modules, net, resnet, densenet, senet
-import loaddata
-import util
+from ReSIDE.models import modules, resnet, densenet, net, senet
 import numpy as np
-import sobel
+from ReSIDE import sobel, loaddata, util
 
 
 def main():

@@ -6,11 +6,8 @@ import torch.nn as nn
 import torch.nn.parallel
 import torch.backends.cudnn as cudnn
 import torch.optim
-import loaddata
-import util
-import numpy as np
-import sobel
-from models import modules, net, resnet, densenet, senet
+from ReSIDE import sobel, loaddata
+from ReSIDE.models import modules, resnet, densenet, net, senet
 
 parser = argparse.ArgumentParser(description='PyTorch DenseNet Training')
 parser.add_argument('--epochs', default=20, type=int,
@@ -82,7 +79,7 @@ def train(train_loader, model, optimizer, epoch):
     for i, sample_batched in enumerate(train_loader):
         image, depth = sample_batched['image'], sample_batched['depth']
 
-        depth = depth.cuda(async=True)
+        depth = depth.cuda()
         image = image.cuda()
         image = torch.autograd.Variable(image)
         depth = torch.autograd.Variable(depth)
