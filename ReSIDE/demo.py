@@ -30,11 +30,11 @@ def define_model(is_resnet, is_densenet, is_senet):
 
 
 @plac.annotations(
-    image_path=plac.Annotation('The path to an RGB image.', type=str),
-    model_path=plac.Annotation('The path to the pre-trained model weights.', type=str, kind='option'),
-    output_path=plac.Annotation('The path to save the model output to.', type=str, kind='option'),
+    image_path=plac.Annotation('The path to an RGB image.', type=str, kind='option', abbrev='i'),
+    model_path=plac.Annotation('The path to the pre-trained model weights.', type=str, kind='option', abbrev='m'),
+    output_path=plac.Annotation('The path to save the model output to.', type=str, kind='option', abbrev='o'),
 )
-def main(image_path, model_path='pretrained_model/model_resnet', output_path='data/out.png'):
+def main(image_path, model_path='pretrained_model/model_resnet', output_path=None):
     is_resnet = 'resnet' in model_path.lower()
     is_densenet = 'densenet' in model_path.lower()
     is_senet = 'senet' in model_path.lower()
@@ -45,9 +45,16 @@ def main(image_path, model_path='pretrained_model/model_resnet', output_path='da
     model.load_state_dict(state_dict)
     model.eval()
 
-    nyu2_loader = loaddata.readNyu2(os.path.abspath(image_path))
+    rgb_path = os.path.abspath(image_path)
 
-    test(nyu2_loader, model, output_path)
+    print(f"Loading image from {rgb_path}")
+    nyu2_loader = loaddata.readNyu2(rgb_path)
+
+    path, file = os.path.split(rgb_path)
+    depth_path = os.path.join(output_path, file) if output_path else os.path.join(path, f"out_{file}")
+
+    print(f"Saving depth to {depth_path}")
+    test(nyu2_loader, model, depth_path)
 
 
 def test(nyu2_loader, model, output_path):
