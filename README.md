@@ -5,17 +5,14 @@ Junjie Hu, Mete Ozay, Yan Zhang, Takayuki Okatani [https://arxiv.org/abs/1803.08
 ![](https://github.com/junjH/Revisiting_Single_Depth_Estimation/raw/master/examples/example.png)
 ![](https://github.com/junjH/Revisiting_Single_Depth_Estimation/raw/master/examples/results.png)
 
-
-## Dependencies
-Install the conda environment with:
-```shell script
-conda env create -f environment.yml
-```
-
 ## Running
 
 -   Download the trained models: [Depth estimation networks](https://drive.google.com/file/d/1QaUkdOiGpMuzMeWCGbey0sT0wXY0xtsj/view?usp=sharing) <br>
--   Download the data: [NYU-v2 dataset](https://drive.google.com/file/d/1WoOZOBpOWfmwe7bknWS5PMUCLBPFKTOw/view?usp=sharing) <br>
+-   Download the data (only necessary for training): [NYU-v2 dataset](https://drive.google.com/file/d/1WoOZOBpOWfmwe7bknWS5PMUCLBPFKTOw/view?usp=sharing) <br>
+-   Create the conda environment:
+    ```shell script
+    conda env create -f environment.yml
+    ```
 -   Activate the conda environment:
     ```shell script
     conda activate ReSIDE
