@@ -306,7 +306,7 @@ def test(test_loader, model):
         elapsed_time = datetime.datetime.now() - epoch_start_time
         time_per_instance = elapsed_time.total_seconds() / epoch_progress
 
-        print(f"\rTrain [{epoch_progress:05d}/{len(test_loader.dataset):05d}]"
+        print(f"\rVal [{epoch_progress:05d}/{len(test_loader.dataset):05d}]"
               f" - Elapsed Time: {elapsed_time} ({time_per_instance:.4f}s/image)"
               f" - {metrics}", end="")
 
