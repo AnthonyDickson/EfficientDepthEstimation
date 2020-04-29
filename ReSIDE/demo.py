@@ -8,26 +8,10 @@ import torch.nn.parallel
 
 from ReSIDE import loaddata_demo as loaddata
 from ReSIDE.models import modules, resnet, densenet, net, senet
+from ReSIDE.models.lasinger2019 import BestNet
+from ReSIDE.train import define_model
 
 plt.set_cmap("gray")
-
-
-def define_model(is_resnet, is_densenet, is_senet):
-    if is_resnet:
-        original_model = resnet.resnet50(pretrained=True)
-        Encoder = modules.E_resnet(original_model)
-        model = net.model(Encoder, num_features=2048, block_channel=[256, 512, 1024, 2048])
-    if is_densenet:
-        original_model = densenet.densenet161(pretrained=True)
-        Encoder = modules.E_densenet(original_model)
-        model = net.model(Encoder, num_features=2208, block_channel=[192, 384, 1056, 2208])
-    if is_senet:
-        original_model = senet.senet154(pretrained='imagenet')
-        Encoder = modules.E_senet(original_model)
-        model = net.model(Encoder, num_features=2048, block_channel=[256, 512, 1024, 2048])
-
-    return model
-
 
 @plac.annotations(
     image_path=plac.Annotation('The path to an RGB image or a directory containing RGB images.', type=str, kind='option', abbrev='i'),
@@ -36,16 +20,22 @@ def define_model(is_resnet, is_densenet, is_senet):
 )
 def main(image_path, model_path='pretrained_model/model_resnet', output_path=None):
     print("Loading model...")
+    # model = BestNet.load(model_path).cuda()
 
     is_resnet = 'resnet' in model_path.lower()
     is_densenet = 'densenet' in model_path.lower()
     is_senet = 'senet' in model_path.lower()
+    is_efficientnet = 'efficientnet' in model_path.lower()
 
-    model = define_model(is_resnet=is_resnet, is_densenet=is_densenet, is_senet=is_senet)
+    model = define_model(is_resnet=is_resnet, is_densenet=is_densenet, is_senet=is_senet,
+                         is_efficientnet=is_efficientnet, efficientnet_variant="efficientnet-b4")
     model = torch.nn.DataParallel(model).cuda()
     state_dict = torch.load(os.path.abspath(model_path))
+    # state_dict = {f"module.{key}": value for key, value in state_dict.items()}
     model.load_state_dict(state_dict)
     model.eval()
+
+    os.makedirs(output_path, exist_ok=True)
 
     print("Creating depth maps...")
     rgb_path = os.path.abspath(image_path)

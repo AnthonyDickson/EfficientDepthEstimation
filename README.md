@@ -18,7 +18,6 @@ Junjie Hu, Mete Ozay, Yan Zhang, Takayuki Okatani [https://arxiv.org/abs/1803.08
     conda activate ReSIDE
     ```
 
-
 ### Demo
 ```shell script
 python -m demo

@@ -3,12 +3,14 @@ import math
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
+from efficientnet_pytorch import EfficientNet
 from torch.utils import model_zoo
 import copy
 import numpy as np
 from ReSIDE.models import senet
 from ReSIDE.models import resnet
 from ReSIDE.models import densenet
+
 
 class _UpProjection(nn.Sequential):
 
@@ -37,10 +39,11 @@ class _UpProjection(nn.Sequential):
 
         return out
 
+
 class E_resnet(nn.Module):
 
-    def __init__(self, original_model, num_features = 2048):
-        super(E_resnet, self).__init__()        
+    def __init__(self, original_model, num_features=2048):
+        super(E_resnet, self).__init__()
         self.conv1 = original_model.conv1
         self.bn1 = original_model.bn1
         self.relu = original_model.relu
@@ -50,7 +53,6 @@ class E_resnet(nn.Module):
         self.layer2 = original_model.layer2
         self.layer3 = original_model.layer3
         self.layer4 = original_model.layer4
-       
 
     def forward(self, x):
         x = self.conv1(x)
@@ -65,10 +67,11 @@ class E_resnet(nn.Module):
 
         return x_block1, x_block2, x_block3, x_block4
 
+
 class E_densenet(nn.Module):
 
-    def __init__(self, original_model, num_features = 2208):
-        super(E_densenet, self).__init__()        
+    def __init__(self, original_model, num_features=2208):
+        super(E_densenet, self).__init__()
         self.features = original_model.features
 
     def forward(self, x):
@@ -100,10 +103,11 @@ class E_densenet(nn.Module):
 
         return x_block1, x_block2, x_block3, x_block4
 
+
 class E_senet(nn.Module):
 
-    def __init__(self, original_model, num_features = 2048):
-        super(E_senet, self).__init__()        
+    def __init__(self, original_model, num_features=2048):
+        super(E_senet, self).__init__()
         self.base = nn.Sequential(*list(original_model.children())[:-3])
 
     def forward(self, x):
@@ -115,9 +119,89 @@ class E_senet(nn.Module):
 
         return x_block1, x_block2, x_block3, x_block4
 
+
+class E_efficientnet(nn.Module):
+    """An encoder that uses a pre-trained network."""
+
+    def __init__(self, name="efficientnet-b0", pretrained=False, freeze_weights=False):
+        """
+        :param name: The name of the encoder to use, e.g. 'resnet50', 'efficientnet-b0'.
+        :param pretrained: Whether to use a pre-trained version of the encoder.
+        :param freeze_weights: Whether to use the encoder as a fixed (non-trainable) feature extractor.
+        """
+        super().__init__()
+
+        self.name = name.lower()
+        self.pretrained = pretrained
+        self.freeze_weights = freeze_weights
+
+        if name.startswith("efficientnet"):
+            self.blocks, self._block_out_channels = E_efficientnet._make_efficientnet_encoder(self.name, pretrained)
+            self.num_features = self.block_out_channels[-1]
+        else:
+            raise RuntimeError(f"Unsupported encoder network '{self.name}'.")
+
+        if freeze_weights:
+            # Use the encoder as a fixed feature extractor.
+            self.blocks.requires_grad_(False)
+
+    @property
+    def block_out_channels(self):
+        return self._block_out_channels
+
+    def forward(self, x):
+        output = x
+        outputs = []
+
+        for block in self.blocks:
+            output = block(output)
+            outputs.append(output)
+
+        return outputs
+
+    # noinspection PyProtectedMember
+    @staticmethod
+    def _make_efficientnet_encoder(encoder_name, pretrained):
+        net = EfficientNet.from_pretrained(encoder_name) if pretrained else EfficientNet.from_name(encoder_name)
+
+        if encoder_name == "efficientnet-b0":
+            block_indices = [0, 3, 5, 8, len(net._blocks)]
+        elif encoder_name in {"efficientnet-b1", "efficient-b2"}:
+            block_indices = [0, 5, 8, 16, len(net._blocks)]
+        elif encoder_name == "efficientnet-b3":
+            block_indices = [0, 5, 8, 18, len(net._blocks)]
+        elif encoder_name == "efficientnet-b4":
+            block_indices = [0, 6, 10, 22, len(net._blocks)]
+        elif encoder_name == "efficientnet-b5":
+            block_indices = [0, 8, 13, 27, len(net._blocks)]
+        elif encoder_name == "efficientnet-b6":
+            block_indices = [0, 9, 15, 31, len(net._blocks)]
+        elif encoder_name == "efficientnet-b7":
+            block_indices = [0, 11, 18, 38, len(net._blocks)]
+        else:
+            raise RuntimeError(f"Unsupported encoder network '{encoder_name}'.")
+
+        input_layers = list(net.children())[:2]
+
+        blocks = nn.ModuleList([
+            nn.Sequential(*input_layers, *net._blocks[block_indices[0]:block_indices[1]])
+        ])
+
+        for i in range(1, len(block_indices) - 1):
+            start, end = block_indices[i], block_indices[i + 1]
+
+            blocks.append(
+                nn.Sequential(*net._blocks[start:end])
+            )
+
+        block_out_channels = [list(block.modules())[-2].num_features for block in blocks]
+
+        return blocks, block_out_channels
+
+
 class D(nn.Module):
 
-    def __init__(self, num_features = 2048):
+    def __init__(self, num_features=2048):
         super(D, self).__init__()
         self.conv = nn.Conv2d(num_features, num_features //
                                2, kernel_size=1, stride=1, bias=False)
@@ -140,38 +224,36 @@ class D(nn.Module):
             num_input_features=num_features, num_output_features=num_features // 2)
         num_features = num_features // 2
 
-
     def forward(self, x_block1, x_block2, x_block3, x_block4):
         x_d0 = F.relu(self.bn(self.conv(x_block4)))
         x_d1 = self.up1(x_d0, [x_block3.size(2), x_block3.size(3)])
         x_d2 = self.up2(x_d1, [x_block2.size(2), x_block2.size(3)])
         x_d3 = self.up3(x_d2, [x_block1.size(2), x_block1.size(3)])
-        x_d4 = self.up4(x_d3, [x_block1.size(2)*2, x_block1.size(3)*2])
+        x_d4 = self.up4(x_d3, [x_block1.size(2) * 2, x_block1.size(3) * 2])
 
         return x_d4
+
 
 class MFF(nn.Module):
 
     def __init__(self, block_channel, num_features=64):
-
         super(MFF, self).__init__()
-        
+
         self.up1 = _UpProjection(
             num_input_features=block_channel[0], num_output_features=16)
-        
+
         self.up2 = _UpProjection(
             num_input_features=block_channel[1], num_output_features=16)
-       
+
         self.up3 = _UpProjection(
             num_input_features=block_channel[2], num_output_features=16)
-       
+
         self.up4 = _UpProjection(
             num_input_features=block_channel[3], num_output_features=16)
 
         self.conv = nn.Conv2d(
             num_features, num_features, kernel_size=5, stride=1, padding=2, bias=False)
         self.bn = nn.BatchNorm2d(num_features)
-        
 
     def forward(self, x_block1, x_block2, x_block3, x_block4, size):
         x_m1 = self.up1(x_block1, size)
@@ -187,10 +269,9 @@ class MFF(nn.Module):
 
 class R(nn.Module):
     def __init__(self, block_channel):
-
         super(R, self).__init__()
-        
-        num_features = 64 + block_channel[3]//32
+
+        num_features = 64 + block_channel[3] // 32
         self.conv0 = nn.Conv2d(num_features, num_features,
                                kernel_size=5, stride=1, padding=2, bias=False)
         self.bn0 = nn.BatchNorm2d(num_features)

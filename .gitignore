@@ -1,0 +1,5 @@
+data/
+wandb/
+checkpoints/
+pretrained_model/
+*__pycache__/
