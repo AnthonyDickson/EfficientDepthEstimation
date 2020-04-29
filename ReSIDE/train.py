@@ -124,9 +124,7 @@ def main(args: Optional[List[str]] = None):
                 "encoder": {
                     "name": encoder
                 },
-                "decoder": {
-                    "decoder_type": decoder
-                }
+                "decoder_type": decoder
             }
         },
         config_exclude_keys=["checkpoint_scheduler", "dataset"]
