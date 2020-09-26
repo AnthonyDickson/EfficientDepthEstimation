@@ -18,7 +18,7 @@ import wandb
 
 from ReSIDE import sobel, loaddata, util
 from ReSIDE.models import modules, resnet, densenet, net, senet
-from ReSIDE.models.lasinger2019 import BestNet, Encoder, Decoder, BottleneckBlock
+from ReSIDE.models.lasinger2019 import MidasNet, Encoder, Decoder, BottleneckBlock
 from ReSIDE.util import MetricsTracker, BestMetricsTracker, Timer, AverageMeter
 
 
@@ -85,7 +85,7 @@ def main(args: Optional[List[str]] = None):
             raise RuntimeError(f"Unrecognised encoder '{encoder}'.")
     else:
         encoder_ = Encoder(name=encoder, pretrained=True)
-        model = BestNet(
+        model = MidasNet(
             encoder_,
             Decoder(encoder_.block_out_channels, num_features='auto'),
             output_size=(152, 114), input_size=(304, 228)

@@ -8,7 +8,7 @@ import torch.nn.parallel
 
 from ReSIDE import loaddata_demo as loaddata
 from ReSIDE.models import modules, resnet, densenet, net, senet
-from ReSIDE.models.lasinger2019 import BestNet
+from ReSIDE.models.lasinger2019 import MidasNet
 from ReSIDE.train import define_model
 
 plt.set_cmap("gray")
@@ -20,7 +20,7 @@ plt.set_cmap("gray")
 )
 def main(image_path, model_path='pretrained_model/model_resnet', output_path=None):
     print("Loading model...")
-    # model = BestNet.load(model_path).cuda()
+    # model = MidasNet.load(model_path).cuda()
 
     is_resnet = 'resnet' in model_path.lower()
     is_densenet = 'densenet' in model_path.lower()

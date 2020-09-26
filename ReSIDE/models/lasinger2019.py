@@ -297,7 +297,7 @@ class Decoder(nn.Module):
         return output
 
 
-class BestNet(nn.Module):
+class MidasNet(nn.Module):
     """
     A re-implementation of MiDaS from [1].
 
@@ -411,7 +411,7 @@ class BestNet(nn.Module):
 
         encoder = Encoder(**state['encoder'])
         decoder = Decoder(encoder.block_out_channels, **state['decoder'])
-        net = BestNet(encoder, decoder, state['output_size'], state['input_size'], state['adversarial_training'])
+        net = MidasNet(encoder, decoder, state['output_size'], state['input_size'], state['adversarial_training'])
         net.load_state_dict(state['weights'])
 
         return net

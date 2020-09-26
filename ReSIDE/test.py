@@ -7,7 +7,7 @@ import torch.nn.parallel
 from ReSIDE.models import modules, resnet, densenet, net, senet
 import numpy as np
 from ReSIDE import sobel, loaddata, util
-from ReSIDE.models.lasinger2019 import BestNet
+from ReSIDE.models.lasinger2019 import MidasNet
 from ReSIDE.train import define_model
 from ReSIDE.util import MetricsTracker
 
@@ -21,7 +21,7 @@ def main():
 
     model.load_state_dict(state_dict)
 
-    # model = BestNet.load(r"checkpoints/bestnet-resnet50.pth").cuda()
+    # model = MidasNet.load(r"checkpoints/bestnet-resnet50.pth").cuda()
 
     test_loader = loaddata.getTestingData(1)
     test(test_loader, model, 0.25)
