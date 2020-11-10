@@ -10,10 +10,12 @@ from PIL import Image
 
 
 @plac.annotations(
-    point_cloud_dir=plac.Annotation('The path to the point clouds.', abbrev='i', kind='option', type=str)
+    point_cloud_dir=plac.Annotation('The path to the point clouds.', abbrev='i', kind='option', type=str),
+    orientation=plac.Annotation('Whether to put samples from the same test image along the same column or row.',
+                                abbrev='o', kind='option', type=str, choices=['row', 'column'])
 )
-def main(point_cloud_dir):
-    decoders = sorted(os.listdir(point_cloud_dir))
+def main(point_cloud_dir, orientation='column'):
+    decoders = sorted(filter(lambda x: os.path.isdir(os.path.join(point_cloud_dir, x)), os.listdir(point_cloud_dir)))
     encoders = sorted(os.listdir(os.path.join(point_cloud_dir, decoders[0])))
 
     collage = None
@@ -59,12 +61,12 @@ def main(point_cloud_dir):
                 if row is None:
                     row = out_image
                 else:
-                    row = np.concatenate((row, out_image), axis=1)
+                    row = np.concatenate((row, out_image), axis=1 if orientation == 'column' else 0)
 
             if collage is None:
                 collage = row
             else:
-                collage = np.concatenate((collage, row), axis=0)
+                collage = np.concatenate((collage, row), axis=0 if orientation == 'column' else 1)
 
     vis.close()
     vis.destroy_window()

@@ -24,9 +24,10 @@ from ReSIDE.train import define_model
 )
 def main(image_path, checkpoint_path='checkpoints', output_path="output"):
     os.makedirs(output_path, exist_ok=True)
+    create_video(image_path, os.path.join(checkpoint_path, "resnet50-lasinger.pth"), output_path)
 
-    for model_name in sorted(os.listdir(checkpoint_path)):
-        create_video(image_path, os.path.join(checkpoint_path, model_name), output_path)
+    # for model_name in sorted(os.listdir(checkpoint_path)):
+    #     create_video(image_path, os.path.join(checkpoint_path, model_name), output_path)
 
 
 def create_video(image_path, model_path, output_path):
@@ -70,14 +71,17 @@ def create_video(image_path, model_path, output_path):
     __imagenet_stats = {'mean': [0.485, 0.456, 0.406],
                         'std': [0.229, 0.224, 0.225]}
 
-    width, height = 320, 240
+    # TODO: Detect input dimensions automatically.
+    width, height = 1920, 1440
+    # TODO: Add options defining border sizes or the aspect ratio of the original, unpadded input.
     # The size of the border (pillar/letterboxing) created from resizing a 16:9 video to 4:3 (in pixels).
-    border_width = 30
+    border_width = 180
     crop_rect = (0, border_width, width, height - border_width)
 
+    # TODO: Make input size configurable via arguments.
     transform = transforms.Compose([
-        Scale([320, 240]),
-        CenterCrop([304, 228]),
+        Scale([640, 480]),
+        CenterCrop([int(640 * 0.95), int(480 * 0.95)]),
         ToTensor(),
         Normalize(__imagenet_stats['mean'],
                   __imagenet_stats['std'])
@@ -93,7 +97,7 @@ def create_video(image_path, model_path, output_path):
         for i, image_file in enumerate(sorted(os.listdir(image_path))):
             print(f"Frame {i + 1:03d}")
             raw_img = Image.open(os.path.join(image_path, image_file))
-            img = transform(raw_img).unsqueeze(0)
+            img = transform(raw_img).unsqueeze(0) / 255.0
             depth = model(img.cuda())
 
             depth = torch.nn.functional.interpolate(depth, size=(height, width),
@@ -114,9 +118,10 @@ def create_video(image_path, model_path, output_path):
 
             stacked_frame = np.hstack((color, depth))
 
+            assert stacked_frame.shape[0] == (height - 2 * border_width) and stacked_frame.shape[1] == 2 * width
             video.write(stacked_frame)
 
-    # video.release()
+    video.release()
 
 
 if __name__ == '__main__':
