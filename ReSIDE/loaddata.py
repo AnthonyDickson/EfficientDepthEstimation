@@ -1,7 +1,7 @@
 import pandas as pd
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
-from ReSIDE.nyu_transform import *
+from .nyu_transform import *
 
 
 class depthDataset(Dataset):

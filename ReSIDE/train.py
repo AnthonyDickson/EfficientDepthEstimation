@@ -16,10 +16,10 @@ import torch.nn.functional as F
 
 import wandb
 
-from ReSIDE import sobel, loaddata, util
-from ReSIDE.models import modules, resnet, densenet, net, senet
-from ReSIDE.models.lasinger2019 import MidasNet, Encoder, Decoder, BottleneckBlock
-from ReSIDE.util import MetricsTracker, BestMetricsTracker, Timer, AverageMeter
+from . import sobel, loaddata, util
+from .models import modules, resnet, densenet, net, senet
+from .models.lasinger2019 import MidasNet, Encoder, Decoder, BottleneckBlock
+from .util import MetricsTracker, BestMetricsTracker, Timer, AverageMeter
 
 
 def define_model(is_resnet=False, is_densenet=False, is_senet=False, is_efficientnet=False,

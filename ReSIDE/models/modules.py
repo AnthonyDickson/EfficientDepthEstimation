@@ -7,9 +7,9 @@ from efficientnet_pytorch import EfficientNet
 from torch.utils import model_zoo
 import copy
 import numpy as np
-from ReSIDE.models import senet
-from ReSIDE.models import resnet
-from ReSIDE.models import densenet
+from . import senet
+from . import resnet
+from . import densenet
 
 
 class _UpProjection(nn.Sequential):

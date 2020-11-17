@@ -14,10 +14,10 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from torchvision.transforms import Compose
 
-from ReSIDE.demo_transform import Scale, CenterCrop, ToTensor, Normalize
-from ReSIDE.models.lasinger2019 import MidasNet
-from ReSIDE.train import define_model
-from ReSIDE.util import Timer
+from .demo_transform import Scale, CenterCrop, ToTensor, Normalize
+from .models.lasinger2019 import MidasNet
+from .train import define_model
+from .util import Timer
 
 
 @plac.annotations(
