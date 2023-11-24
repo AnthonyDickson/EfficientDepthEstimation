@@ -1,12 +1,12 @@
+import copy
+import numpy as np
+import pdb
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.model_zoo as model_zoo
 from collections import OrderedDict
-import pdb
-import copy
 from torchvision import utils
-import numpy as np
 
 __all__ = ['DenseNet', 'densenet121',
            'densenet169', 'densenet201', 'densenet161']

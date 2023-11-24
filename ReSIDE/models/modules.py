@@ -1,15 +1,16 @@
-from collections import OrderedDict
+import copy
 import math
+import numpy as np
 import torch
-import torch.nn.functional as F
 import torch.nn as nn
+import torch.nn.functional as F
+from collections import OrderedDict
 from efficientnet_pytorch import EfficientNet
 from torch.utils import model_zoo
-import copy
-import numpy as np
-from ReSIDE.models import senet
-from ReSIDE.models import resnet
+
 from ReSIDE.models import densenet
+from ReSIDE.models import resnet
+from ReSIDE.models import senet
 
 
 class _UpProjection(nn.Sequential):

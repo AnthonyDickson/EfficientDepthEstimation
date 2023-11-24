@@ -1,6 +1,3 @@
-from typing import List, Union, Optional
-from warnings import warn
-
 import plac
 import torch
 import torchvision
@@ -8,7 +5,8 @@ from efficientnet_pytorch import EfficientNet
 from torch import nn
 # noinspection PyPep8Naming
 from torch.nn import functional as F
-
+from typing import List, Union, Optional
+from warnings import warn
 
 __version__ = '0.2.0'
 

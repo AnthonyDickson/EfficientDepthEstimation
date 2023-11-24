@@ -1,17 +1,17 @@
-from collections import OrderedDict
-import math
-import torch
-import torch.nn.functional as F
-import torch.nn as nn
-from torch.utils import model_zoo
 import copy
+import math
 import numpy as np
-from ..models import modules
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from collections import OrderedDict
+from torch.utils import model_zoo
 from torchvision import utils
 
-from ..models import senet
-from ..models import resnet
-from ..models import densenet
+from ReSIDE.models import densenet
+from ReSIDE.models import modules
+from ReSIDE.models import resnet
+from ReSIDE.models import senet
 
 
 class model(nn.Module):
