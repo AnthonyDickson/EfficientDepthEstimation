@@ -1,0 +1,403 @@
+<script src="https://assets.crowd.aws/crowd-html-elements.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<script>
+    const videoNames = {{ video_names }};
+    const pairs = {{ pairs }};
+    const s3_base_url = "{{ s3_base_url }}";
+    const videoFileExt = "{{ video_file_ext }}";
+
+
+    const getUrl = (modelA, modelB, videoName) => {
+        return `{0}/{1}-{2}/{3}{4}`.format(s3_base_url, modelA, modelB, videoName, videoFileExt)
+    };
+
+    const shuffle = (array) => {
+        let currentIndex = array.length, randomIndex;
+
+        // While there remain elements to shuffle...
+        while (0 !== currentIndex) {
+
+            // Pick a remaining element...
+            randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex--;
+
+            // And swap it with the current element.
+            [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+        }
+
+        return array;
+    }
+
+    const num_items = videoNames.length * pairs.length;
+    const half_num_elements = num_items / 2;
+    const isPairFlipped = shuffle(Array(half_num_elements).fill(true)
+        .concat(Array(half_num_elements).fill(false)));
+
+    const createLatinSquare = () => {
+        let rows = [];
+        let element_number = 0;
+
+        for (let i = 0; i < videoNames.length; i++) {
+            const startIndex = i % pairs.length;
+            const videoName = videoNames[i];
+            let row = [];
+
+            for (let k = startIndex; k < startIndex + pairs.length; k++) {
+                const [gt, model] = pairs[k % pairs.length];
+                const isReversePair = isPairFlipped[element_number++];
+                const url = (isReversePair) ? getUrl(gt, model, videoName) : getUrl(model, gt, videoName);
+
+                row.push([gt, model, videoName, isReversePair, url]);
+            }
+
+            rows.push(row);
+        }
+
+        return rows;
+    }
+
+    String.prototype.format = function () {
+        let a = this;
+        for (let k in arguments) {
+            a = a.replace(new RegExp("\\{" + k + "\\}", 'g'), arguments[k]);
+        }
+        return a
+    }
+
+    $(document).ready(() => {
+        const taskElement = $('#task-container');
+
+        const rows = shuffle(createLatinSquare());
+
+         const createQuestion = (id, questionText, questionNumber, questionType) =>
+             `<div>
+            <p>Q{2}. {1}</p>
+
+            <ol reversed>
+                <li>
+                    <input type="radio" id="{0}-{3}-very-good" name="{0}-{3}" value="7" disabled>
+                    <label for="{0}-{3}-very-good">Strongly Agree</label>
+                </li>
+                <li>
+                    <input type="radio" id="{0}-{3}-good" name="{0}-{3}" value="6" disabled>
+                    <label for="{0}-{3}-good">Agree</label>
+                </li>
+                <li>
+                    <input type="radio" id="{0}-{3}-somewhat-good" name="{0}-{3}" value="5" disabled>
+                    <label for="{0}-{3}-somewhat-good">Somewhat Agree</label>
+                </li>
+                <li>
+                    <input type="radio" id="{0}-{3}-moderate" name="{0}-{3}" value="4" disabled>
+                    <label for="{0}-{3}-moderate">Neutral</label>
+                </li>
+                <li>
+                    <input type="radio" id="{0}-{3}-somewhat-poor" name="{0}-{3}" value="3" disabled>
+                    <label for="{0}-{3}-somewhat-poor">Somewhat Disagree</label>
+                </li>
+                <li>
+                    <input type="radio" id="{0}-{3}-poor" name="{0}-{3}" value="2" disabled>
+                    <label for="{0}-{3}-poor">Disagree</label>
+                </li>
+                <li>
+                    <input type="radio" id="{0}-{3}-very-poor" name="{0}-{3}" value="1" disabled required>
+                    <label for="{0}-{3}-very-poor">Strongly Disagree</label>
+                </li>
+            </ol>
+        </div>`.format(id, questionText, questionNumber, questionType)
+
+        rows.forEach((row, index) => {
+            row.forEach((taskData, columnIndex) => {
+                const [gt, model, videoName, isReversePair, url] = taskData;
+                const taskId = `{0}-{1}-{2}`.format(gt, model, videoName);
+                const taskIndex = index * row.length + columnIndex + 1;
+                const leftVideoId = (isReversePair) ? `{0}-{1}-{2}`.format(gt, videoName, taskIndex) : `{0}-{1}`.format(model, videoName)
+                const rightVideoId = (isReversePair) ? `{0}-{1}`.format(model, videoName) : `{0}-{1}-{2}`.format(gt, videoName, taskIndex)
+
+                taskElement.append(`
+                <div id="{0}" class="task">
+                    <h3>Task {1} of {2}</h3>
+
+                    <video id="{0}-player" height="320" controls>
+                        <source src="{3}" type="video/mp4">
+                    </video>
+
+                    <div class="question-container">
+                        <div class="overlay">
+                            <p>You must watch the video at least 3 times through before answering any questions.</p>
+                        </div>
+
+                        {4}
+
+                        {5}
+
+                        {6}
+                    </div>
+                </div>`.format(
+                    taskId, taskIndex, num_items, url,
+                    createQuestion(taskId, "These two videos are similar.", 1, "similarity"),
+                    createQuestion(leftVideoId, "The 3D effect in the video on the <strong>left</strong> is realistic.", 2, "realism"),
+                    createQuestion(rightVideoId, "The 3D effect in the video on the <strong>right</strong> is realistic.", 3, "realism")
+                ));
+
+                const player = $(`#{0}-player`.format(taskId));
+
+                player.bind('ended', (() => {
+                    let count = 0;
+
+                    return () => {
+                        count += 1;
+
+                        if (count >= 3) {
+                           $(`#{0} .question-container .overlay`.format(taskId)).css('display', 'none');
+                           $(`#{0} input[type=radio]`.format(taskId)).attr("disabled", false);
+                        }
+
+                        player.get(0).play();
+                    }
+                })());
+            });
+
+        });
+    });
+</script>
+
+<style>
+    .task {
+        border: 1px solid #ccc;
+        border-radius: 16px;
+        padding: 10px;
+        margin-bottom: 10px;
+    }
+
+    .question-container {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        position: relative;
+    }
+
+
+    .question-container > .overlay {
+        background-color: rgba(255, 255, 255, 0.85);
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        /*  The flex box stuff is used to center the text of the overlay.   */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .overlay > p {
+        background: white;
+        padding: 10px;
+        border-radius: 16px;
+    }
+
+    .question-container > div {
+        padding-left: 5px;
+        padding-right: 5px;
+        border: 1px solid #ccc;
+    }
+</style>
+
+<div>
+
+    <crowd-form answer-format="flatten-objects">
+        <div id="instructions">
+            <h2>Instructions</h2>
+            Please read through these instructions before starting.
+
+            <ol>
+                <li>This study should take about 20 minutes of your time and should be completed in one sitting. </li>
+                <li>Read the <a href="https://dl3d.s3-us-west-1.amazonaws.com/InformationSheet.pdf" target="_blank">information
+                    sheet</a>.</li>
+                <li>Read the <a href="https://dl3d.s3-us-west-1.amazonaws.com/ConsentForm.pdf"
+                                          target="_blank">consent
+                        form</a>. You will asked to confirm that you read this and agree to the terms later on.</li>
+                <li>You will need to fill out a questionnaire regarding basic demographic data.</li>
+                <li>You will then be shown a series of tasks. You should complete these in the order they appear.</li>
+                <li>Each task contains a video and a set of questions. Watch each video at least 3 times through and then answer the questions for that video.</li>
+                <li>You should aim to spend at most 2 minutes per task.</li>
+                <li>Finally, you will be asked to provide some feedback on the videos you looked at. You should keep note of anything that look strange or out of place while you are going through the tasks. There will be a section before you start that will give some examples of things to look out for.</li>
+                <li>Please note that you must complete all tasks and questionnaires for your work to be accepted.</li>
+            </ol>
+       </div>
+
+        <div id="demographics-questionnaire">
+            <h2>Demographics Questionnaire</h2>
+            <p>This questionnaire is for people who are interested in participating in our study "Depth Learning Models
+                for 3D Content Creation from Casual Video".
+            </p>
+
+            <ol>
+                <li>
+                    <p>What is your age?</p>
+                    <crowd-input name="age" placeholder="example: 24" type="number" auto-validate
+                                 allowed-pattern="^\d{1,3}$"
+                                 error-message="Please enter a positive whole number." min="1" max="130" required></crowd-input>
+                </li>
+                <li>
+                    <p>What is your gender?</p>
+                    <div>
+                        <input type="radio" id="male" name="gender" value="male" required>
+                        <label for="male">Male</label>
+                    </div>
+                    <div>
+                        <input type="radio" id="female" name="gender" value="female">
+                        <label for="female">Female</label>
+                    </div>
+                    <div>
+                        <input type="radio" id="other" name="gender" value="other">
+                        <label for="other">Other</label>
+                    </div>
+                </li>
+
+                <li>
+                    <p>How often do you use virtual reality (VR) devices and/or software? </p>
+                    <div>
+                        <input type="radio" id="vr-experience-never" name="vr-experience" value="0" required>
+                        <label for="vr-experience-never">Never used before</label>
+                    </div>
+                    <div>
+                        <input type="radio" id="vr-experience-once" name="vr-experience" value="1">
+                        <label for="vr-experience-once">Once or twice</label>
+                    </div>
+                    <div>
+                        <input type="radio" id="vr-experience-annually" name="vr-experience" value="2">
+                        <label for="vr-experience-annually">At least once a year</label>
+                    </div>
+                    <div>
+                        <input type="radio" id="vr-experience-monthly" name="vr-experience" value="3">
+                        <label for="vr-experience-monthly">At least once a month</label>
+                    </div>
+                    <div>
+                        <input type="radio" id="vr-experience-weekly" name="vr-experience" value="4">
+                        <label for="vr-experience-weekly">At least once a week</label>
+                    </div>
+                    <div>
+                        <input type="radio" id="vr-experience-daily" name="vr-experience" value="5">
+                        <label for="vr-experience-daily">At least once a day</label>
+                    </div>
+                </li>
+
+                <li>
+                    <p>Do you have normal or normal-to-corrected vision? You should answer "yes" if you can you see fine
+                        with or
+                        without glasses, and "no" if you cannot see well regardless if you use glasses or not.</p>
+                    <div>
+                        <input type="radio" id="good-vision-yes" name="good-vision" value="yes" required>
+                        <label for="good-vision-yes">Yes</label>
+                    </div>
+                    <div>
+                        <input type="radio" id="good-vision-no" name="good-vision" value="no">
+                        <label for="good-vision-no">No</label>
+                    </div>
+                </li>
+
+                <li>
+                    <p>Please read the <a href="https://dl3d.s3-us-west-1.amazonaws.com/ConsentForm.pdf"
+                                          target="_blank">consent
+                        form</a>.</p>
+                    <crowd-checkbox name="agrees-to-terms" required>I have read the consent form and agree to the terms.
+                    </crowd-checkbox>
+                </li>
+            </ol>
+        </div>
+
+        <div id="coaching">
+            <h2 id="coaching-examples">Things to Look Out For</h2>
+            <p>You should pay attention to how realistic the videos look.
+                Here is an example of what could be considered realistic (left) and unrealistic (right):
+            </p>
+            <img src="https://dl3d.s3-us-west-1.amazonaws.com/mturk-examples/good_vs_bad.png" height="320"/>
+
+            <p>
+                You should pay attention to how 3D the videos look. Here is an example of a video that is not 3D (left)
+                and a video that is 3D (right):
+            </p>
+            <img src="https://dl3d.s3.us-west-1.amazonaws.com/mturk-examples/3d_2d-comparison.gif" height="320"/>
+            <p>
+                Notice how things may become hidden behind other objects in the video on the right, but not the left.
+                You may also be able to notice some motion parallax; closer objects move more/faster than objects that are further away.
+            </p>
+
+            <p>Some things may look strange or out of place.
+                This could be surfaces/objects that appear bent/flat when they should not be. For example, compare
+                the
+                walls in these images:
+            </p>
+            <img src="https://dl3d.s3-us-west-1.amazonaws.com/mturk-examples/curved_walls.png" height="320"/>
+
+            <p>Other things to out for may also include:</p>
+            <ul>
+                <li>Objects appearing flat and blending in with their surroundings when they should not be.</li>
+                <li>Objects or parts of objects sticking out when they should be flat instead.</li>
+                <li>Objects appearing at the wrong distance (i.e. in front or behind) relative to other objects in the
+                    scene.
+                </li>
+            </ul>
+
+            <h2>Guide to Answering Questions</h2>
+            <ul>
+                <li>"How similar are the two videos?"</li>
+                <ul>
+                    <li>Each task will have one video. Each of these videos actually show two videos side-by-side.</li>
+                    <li>You are to compare the left and right videos and give a rating of how similar they look overall on a 7-point scale where 1 is not at all similar and 7 is extremely similar (almost identical).</li>
+                </ul>
+
+                <li>"How realistic is the 3D effect in the <i>left/right</i> video?"</li>
+                <ul>
+                    <li>
+                        You will be asked to rate how realistic the 3D effect in a given video is on a 7-point scale
+                        where 1 is very unrealistic and 7 is very realistic.
+                    </li>
+
+                    <li>Is the 3D effect realistic?</li>
+                    <ul>
+                        <li>Do things move as expected?</li>
+                        <li>Can you see motion parallax (e.g. close objects moving more than far objects)?</li>
+                        <li>Do parts of objects become hidden as the camera moves around?</li>
+                        <li>Do objects get hidden behind other objects as the camera moves around?</li>
+                        <li>Do flat surfaces such as walls and benches appear flat?</li>
+                        <li>Do objects like chairs appear as you would expect as the camera moves around?</li>
+                    </ul>
+
+                    <li>Is the 3D effect unrealistic?</li>
+                    <ul>
+                        <li>Does the video appear flat like it is just a printed photograph being moved around? </li>
+                        <li>
+                            <p>In some videos, there may be gaps near the edges. For example:</p>
+                            <img src="https://dl3d.s3.us-west-1.amazonaws.com/mturk-examples/missing_edge_data_example.png" height="320"/>
+                            <p>This kind of thing should not be considered when rating videos on their realism.</p>
+                        </li>
+                    </ul>
+
+                    <li>If you are still unsure you should refer to the <a href="#coaching-examples">previous section</a> for examples of what is considered unrealistic.</li>
+                </ul>
+            </ul>
+
+        </div>
+
+        <div id="task-container">
+            <h2>Tasks</h2>
+        </div>
+
+        <div id="exit-survey">
+            <h2>Some Final Questions</h2>
+            <ul>
+                <li>
+                    <p>What did you notice about the videos that made them look unrealistic?</p>
+                    <crowd-text-area name="feedback-realism" maxlength="1024"></crowd-text-area>
+                </li>
+                <li>
+                    <p>Do you have any other comments about the videos you were shown?</p>
+                    <crowd-text-area name="feedback-comments" maxlength="1024"></crowd-text-area>
+                </li>
+            </ul>
+        </div>
+
+    </crowd-form>
+</div>

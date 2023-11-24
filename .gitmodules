@@ -1,0 +1,3 @@
+[submodule "DepthRenderer"]
+	path = DepthRenderer
+	url = https://github.com/AnthonyDickson/DepthRenderer.git
