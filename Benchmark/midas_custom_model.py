@@ -2,7 +2,7 @@ import warnings
 
 import torch
 
-from benchmark.depth_model import DepthModel
+from Benchmark.depth_model import DepthModel
 from ReSIDE.models.lasinger2019 import MidasNet
 
 

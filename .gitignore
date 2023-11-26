@@ -1,6 +1,6 @@
 data/
 wandb/
-checkpoints/
+pretrained/
 pretrained_model/
 *__pycache__/
 examples/

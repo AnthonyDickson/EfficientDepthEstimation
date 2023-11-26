@@ -6,10 +6,12 @@ The code is separated into three sections:
 * Benchmarking Depth Estimation Models [Benchmark/](./Benchmark)
 * Our User Study on Amazon Mechanical Turk [MTurk/](./MTurk)
 
-## Getting Started
+## Installation
 
--   Download the trained models: [Depth estimation networks](https://drive.google.com/file/d/1QaUkdOiGpMuzMeWCGbey0sT0wXY0xtsj/view?usp=sharing) <br>
--   Download the data (only necessary for training): [NYU-v2 dataset](https://drive.google.com/file/d/1WoOZOBpOWfmwe7bknWS5PMUCLBPFKTOw/view?usp=sharing) <br>
+-   Download the trained models: [Depth estimation networks](https://drive.google.com/file/d/1QaUkdOiGpMuzMeWCGbey0sT0wXY0xtsj/view?usp=sharing)
+-   Download the data (only necessary for training): [NYU-v2 dataset](https://drive.google.com/file/d/1WoOZOBpOWfmwe7bknWS5PMUCLBPFKTOw/view?usp=sharing)
+
+### Local Installation
 -   Create the conda environment:
     ```shell script
     conda env create -f environment.yml
@@ -18,7 +20,12 @@ The code is separated into three sections:
     ```shell script
     conda activate ReSIDE
     ```
+    
+### Docker
+You can use the Docker image `anthondickson/ede` or build the Docker image with the [Docker](./Docker) file.
+Note that the Docker image uses PyTorch 1.7.1 instead of 1.3.1 which was used in the experiments in [1, 2].
 
+## Usage Examples
 ### Demo
 ```shell script
 python -m demo
@@ -31,6 +38,10 @@ python -m test
 ```shell script
 python -m train
 ```
+By default, this trains the model with pretrained ResNet50 encoder with the hu2018 decoder for 20 epochs.
+
+Note that this code uses Weights & Biases (wandb) to cache model weights and example outputs.
+Run outputs can be found under the folder [wanbd/](./wandb) using a name that starts with either `run` or `dryrun`, followed by timestamp and a random ID.
 
 ## Acknowledgements
 This repo includes code from:

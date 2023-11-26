@@ -1,24 +1,19 @@
 import argparse
 import datetime
-import math
 import os
-import time
-import warnings
-from typing import Callable, Union, Optional, List
+from typing import Optional, List
 
-import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.nn.parallel
 import torch.optim
-import torch.nn.functional as F
-
 import wandb
 
-from ReSIDE import sobel, loaddata, util
+from ReSIDE import sobel, loaddata
 from ReSIDE.models import modules, resnet, densenet, net, senet
-from ReSIDE.models.lasinger2019 import MidasNet, Encoder, Decoder, BottleneckBlock
+from ReSIDE.models.lasinger2019 import MidasNet, Encoder, Decoder
 from ReSIDE.util import MetricsTracker, BestMetricsTracker, Timer, AverageMeter
 
 
@@ -51,9 +46,13 @@ def main(args: Optional[List[str]] = None):
     passed in from the command line. If you are calling this code from within Python, you can specify the command line
     arguments with this parameter.
     """
+    efficientnet_model_names = [f"efficientnet-b{i}" for i in range(9)]
+    resnet_model_names = [f"resnet{i}" for i in (18, 50, 101, 152)]
+
     parser = argparse.ArgumentParser(description='PyTorch DenseNet Training')
     parser.add_argument('--encoder', default="resnet50", type=str,
-                        help='The encoder to use for the depth estimation network.')
+                        help='The encoder to use for the depth estimation network.',
+                        choices=["densenet", "senet"] + efficientnet_model_names + resnet_model_names)
     parser.add_argument('--decoder', default="hu2018", type=str, choices={"hu2018", "lasinger2019"},
                         help='The decoder to use for the depth estimation network.')
     parser.add_argument('--epochs', default=20, type=int,
@@ -67,27 +66,27 @@ def main(args: Optional[List[str]] = None):
                         help='weight decay (default: 1e-4)')
     args = parser.parse_args(args=args)
 
-    encoder = args.encoder
-    decoder = args.decoder
+    encoder_name = args.encoder
+    decoder_name = args.decoder
 
     training_start_time = datetime.datetime.now()
 
-    if decoder == "hu2018":
-        if "efficientnet" in encoder:
-            model = define_model(is_efficientnet=True, efficientnet_variant=encoder)
-        elif "resnet" in encoder:
+    if decoder_name == "hu2018":
+        if "efficientnet" in encoder_name:
+            model = define_model(is_efficientnet=True, efficientnet_variant=encoder_name)
+        elif "resnet" in encoder_name:
             model = define_model(is_resnet=True)
-        elif "densenet" in encoder:
+        elif "densenet" in encoder_name:
             model = define_model(is_densenet=True)
-        elif "senet" in encoder:
+        elif "senet" in encoder_name:
             model = define_model(is_senet=True)
         else:
-            raise RuntimeError(f"Unrecognised encoder '{encoder}'.")
+            raise RuntimeError(f"Unrecognised encoder '{encoder_name}'.")
     else:
-        encoder_ = Encoder(name=encoder, pretrained=True)
+        encoder = Encoder(name=encoder_name, pretrained=True)
         model = MidasNet(
-            encoder_,
-            Decoder(encoder_.block_out_channels, num_features='auto'),
+            encoder,
+            Decoder(encoder.block_out_channels, num_features='auto'),
             output_size=(152, 114), input_size=(304, 228)
         )
 
@@ -105,14 +104,6 @@ def main(args: Optional[List[str]] = None):
     optimizer = torch.optim.Adam(model.parameters(), args.lr, weight_decay=args.weight_decay)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 5, gamma=0.1)
 
-    # train_loader = loaddata.getTrainingData(batch_size)
-    # os.makedirs("checkpoints", exist_ok=True)
-    #
-    # for epoch in range(args.start_epoch, args.epochs):
-    #     train(train_loader, model, optimizer, epoch)
-    #     lr_scheduler.step(epoch)
-    #     torch.save(model.state_dict(), os.path.join("checkpoints", f"encoder_name-{epoch + 1:02d}.pth"))
-
     train_loader = loaddata.getTrainingData(batch_size)
     test_loader = loaddata.getTestingData(batch_size)
     min_loss = float('inf')
@@ -122,16 +113,18 @@ def main(args: Optional[List[str]] = None):
         config={
             "network": {
                 "encoder": {
-                    "name": encoder
+                    "name": encoder_name
                 },
-                "decoder_type": decoder
+                "decoder_type": decoder_name
             }
         },
-        config_exclude_keys=["checkpoint_scheduler", "dataset"]
+        config_exclude_keys=["checkpoint_scheduler", "dataset"],
     )
 
-    wandb.run.name = f"{encoder}-{decoder}-{wandb.run.id}"
-    wandb.run.save()
+    wandb.run.name = f"{encoder_name}-{decoder_name}-{wandb.run.id}"
+
+    if wandb.run.mode != 'dryrun':
+        wandb.run.save()
 
     checkpoint_path = os.path.join(wandb.run.dir, f"{wandb.run.name}.pth")
 
@@ -144,25 +137,11 @@ def main(args: Optional[List[str]] = None):
     test_timer = Timer()
     inference_timer = Timer()
 
-    # for epoch in range(args.start_epoch, args.epochs):
-    #     train(train_loader, model, optimizer, epoch)
-    #     metrics = test(test_loader, model)
-    #     lr_scheduler.step(epoch)
-    #
-    #     if metrics.abs_rel.value < min_loss:
-    #         min_loss = metrics.abs_rel.value
-    #
-    #         if decoder == "lasinger2019":
-    #             model.save(checkpoint_path)
-    #         else:
-    #             torch.save(model.state_dict(), checkpoint_path)
-
     for epoch in range(args.start_epoch, args.epochs):
         elapsed_time = datetime.datetime.now() - training_start_time
         print(f"Epoch {epoch + 1:02d}/{args.epochs:02d} - Total Elapsed Time: {elapsed_time}")
 
-        torch.cuda.reset_max_memory_allocated()
-        torch.cuda.reset_max_memory_cached()
+        torch.cuda.reset_peak_memory_stats()
 
         with training_timer:
             train(train_loader, model, optimizer, epoch)
@@ -173,7 +152,7 @@ def main(args: Optional[List[str]] = None):
         if metrics.abs_rel.value < min_loss:
             min_loss = metrics.abs_rel.value
 
-            if decoder == "lasinger2019":
+            if decoder_name == "lasinger2019":
                 model.save(checkpoint_path)
             else:
                 torch.save(model.state_dict(), checkpoint_path)

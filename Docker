@@ -1,1 +1,22 @@
-FROM pytorch/pytorch:1.4-cuda10.1-cudnn7-runtime
+FROM pytorch/pytorch:1.7.1-cuda11.0-cudnn8-runtime
+
+RUN apt update && \
+    apt install -y --no-install-recommends gcc g++ \
+    # Install packages for OpenCV
+    libgl1 libglib2.0-0 libsm6 && \
+    apt -y autoremove && \
+    apt -y clean && \
+    apt -y autoclean && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt /requirements.txt
+RUN pip install -r /requirements.txt
+
+# Cache weights for commonly used EfficientNet models
+RUN python -c "from efficientnet_pytorch import EfficientNet;EfficientNet.from_pretrained('efficientnet-b0');EfficientNet.from_pretrained('efficientnet-b4');"
+# Cache weights for ResNet50 model
+RUN python -c "import torchvision;torchvision.models.resnet50(pretrained)"
+
+WORKDIR /app
+
+CMD ["python"]

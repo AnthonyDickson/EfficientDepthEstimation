@@ -414,6 +414,14 @@ class MidasNet(nn.Module):
 
         return net
 
+    @property
+    def num_parameters(self):
+        """
+        :return: The total number of parameters in the model and any sub-modules.
+        """
+        return sum(params.nelement() for params in self.parameters())
+
+
 
 class Discriminator(nn.Module):
     """A discriminator network to use for adversarial training."""
