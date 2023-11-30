@@ -1,5 +1,8 @@
 data/
 pretrained/
+pretrained_model/
+checkpoints/
+wandb/
 Benchmark/
 DepthRenderer/
 ReSIDE/

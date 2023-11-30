@@ -1514,16 +1514,16 @@ if __name__ == '__main__':
 
     args.renderer_fps = 60
 
-    args.reside_senet_path = "checkpoints/reside_original/model_senet"
-    args.reside_resnet_path = "checkpoints/reside_original/model_resnet"
+    args.reside_senet_path = "pretrained/model_senet"
+    args.reside_resnet_path = "pretrained/model_resnet"
 
-    args.reside_enb0_path = "checkpoints/reside/efficientnet-b0-hu.pth"
-    args.reside_enb4_path = "checkpoints/reside/efficientnet-b4-hu.pth"
-    args.reside_resnet50_path = "checkpoints/reside/resnet50-hu.pth"
+    args.reside_enb0_path = "checkpoints/ENB0-HU.pth"
+    args.reside_enb4_path = "checkpoints/ENB4-HU.pth"
+    args.reside_resnet50_path = "checkpoints/RN50-HU.pth"
 
-    args.midas_enb0_path = "checkpoints/reside/efficientnet-b0-lasinger.pth"
-    args.midas_enb4_path = "checkpoints/reside/efficientnet-b4-lasinger.pth"
-    args.midas_resnet50_path = "checkpoints/reside/resnet50-lasinger.pth"
+    args.midas_enb0_path = "checkpoints/ENB0-LR.pth"
+    args.midas_enb4_path = "checkpoints/ENB4-LR.pth"
+    args.midas_resnet50_path = "checkpoints/RN50-LR.pth"
 
     args.csv_path = "data/datasets/nyuv2/nyu2_test.csv"
     args.batch_size = 4
