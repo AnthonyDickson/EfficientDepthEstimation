@@ -3,7 +3,9 @@ FROM pytorch/pytorch:1.7.1-cuda11.0-cudnn8-runtime
 RUN apt update && \
     apt install -y --no-install-recommends gcc g++ \
     # Install packages for OpenCV
-    libgl1 libglib2.0-0 libsm6 && \
+    libgl1 libglib2.0-0 libsm6  \
+    # Packages for ModernGL
+    mesa-utils libegl1-mesa xvfb libgles2-mesa-dev && \
     apt -y autoremove && \
     apt -y clean && \
     apt -y autoclean && \
@@ -15,7 +17,10 @@ RUN pip install -r /requirements.txt
 # Cache weights for commonly used EfficientNet models
 RUN python -c "from efficientnet_pytorch import EfficientNet;EfficientNet.from_pretrained('efficientnet-b0');EfficientNet.from_pretrained('efficientnet-b4');"
 # Cache weights for ResNet50 model
-RUN python -c "import torchvision;torchvision.models.resnet50(pretrained)"
+RUN python -c "import torchvision;torchvision.models.resnet50(True)"
+# Setup a virtual display, NOTE: Only works in Python if running Python after opening the bash console.
+ENV DISPLAY=:99.0
+RUN echo "Xvfb :99 -screen 0 640x480x24 &" >> ~/.bashrc
 
 WORKDIR /app
 
