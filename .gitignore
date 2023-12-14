@@ -5,3 +5,4 @@ pretrained_model/
 checkpoints/
 *__pycache__/
 examples/
+.idea/workspace.xml
