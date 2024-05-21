@@ -50,11 +50,16 @@ def main():
 
         print(checkpoint_path)
 
-        if 'hu' in checkpoint_file:
-            if 'resnet' in encoder_name.lower():
+        if 'hu' in checkpoint_file.lower():
+            if 'resnet' in encoder_name.lower() or 'rn' in encoder_name.lower():
                 model = define_model(is_resnet=True).cuda()
-            elif 'efficientnet' in encoder_name.lower():
-                model = define_model(is_efficientnet=True, efficientnet_variant=encoder_name.lower())
+            elif 'efficientnet' in encoder_name.lower() or 'en' in encoder_name.lower():
+                if 'en' in encoder_name.lower():  # Handle name style 'ENB#', e.g., 'ENB0', 'ENB4' etc.
+                    efficientnet_name = f"efficientnet-b{encoder_name[-1:].lower()}"
+                else:
+                    efficientnet_name = encoder_name.lower()
+
+                model = define_model(is_efficientnet=True, efficientnet_variant=efficientnet_name)
             else:
                 raise RuntimeError("Unsupported encoder: {}.".format(encoder_name))
 
